@@ -147,6 +147,7 @@ function formatDetails(details) {
   if (details.items && Array.isArray(details.items)) {
     return details.items.map((item, i) => {
       const lines = [`*פריט ${i + 1}:* ${item.type}`];
+      if (item.subType) lines.push(`  📌 סוג: ${item.subType}`);
       if (item.size) lines.push(`  📏 גודל: ${item.size}`);
       if (item.bothSides) lines.push(`  🔄 שני צדדים: ${item.bothSides}`);
       if (item.stains) lines.push(`  🔍 כתמים: ${item.stains}`);
@@ -157,7 +158,7 @@ function formatDetails(details) {
 
   // Single item
   const lines = [];
-  if (details.type) lines.push(`📌 סוג: ${details.type}`);
+  if (details.subType) lines.push(`📌 סוג: ${details.subType}`);
   if (details.size) lines.push(`📏 גודל: ${details.size}`);
   if (details.bothSides) lines.push(`🔄 שני צדדים: ${details.bothSides}`);
   if (details.stains) lines.push(`🔍 כתמים: ${details.stains}`);

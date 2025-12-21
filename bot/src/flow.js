@@ -287,7 +287,7 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
     case STATES.MATTRESS_PHOTO:
       if (hasMedia) {
         await handleItemComplete(chatId, phone, name, 'מזרן', {
-          type: data.mattressType,
+          subType: data.mattressType,
           bothSides: data.bothSides,
           stains: data.stains,
           age: data.age,
@@ -306,7 +306,7 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
     case STATES.SOFA_PHOTO:
       if (hasMedia) {
         await handleItemComplete(chatId, phone, name, 'ספה', {
-          type: data.sofaType,
+          subType: data.sofaType,
         }, mediaUrl, data);
       } else {
         await sendText(chatId, '📸 אנא שלחו תמונה של הספה');
@@ -327,7 +327,7 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
     case STATES.CARPET_PHOTO:
       if (hasMedia) {
         await handleItemComplete(chatId, phone, name, 'שטיח', {
-          type: data.carpetType,
+          subType: data.carpetType,
           size: data.carpetSize,
         }, mediaUrl, data);
       } else {
