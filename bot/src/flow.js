@@ -221,8 +221,9 @@ async function handleMessage(payload) {
 
 // Handle poll vote - supports multiple selections
 async function handlePollVote(payload) {
-  const chatId = payload.from || payload.voter;
-  const phone = extractPhone(chatId);
+  const rawChatId = payload.from || payload.voter;
+  const phone = extractPhone(rawChatId);
+  const chatId = formatChatId(phone); // Always use @c.us format for sending
   const selectedOptions = payload.selectedOptions || [];
 
   // Get all selected option names

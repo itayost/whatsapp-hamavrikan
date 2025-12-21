@@ -73,9 +73,9 @@ function formatChatId(phone) {
   return `${cleaned}@c.us`;
 }
 
-// Extract phone number from chatId
+// Extract phone number from chatId (handles @c.us, @lid, @s.whatsapp.net)
 function extractPhone(chatId) {
-  return chatId.replace('@c.us', '').replace('@s.whatsapp.net', '');
+  return chatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
 }
 
 module.exports = {
