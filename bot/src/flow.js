@@ -9,6 +9,10 @@ const MESSAGES = require('./messages');
 
 const OWNER_PHONE = process.env.OWNER_PHONE || '972544994417';
 
+// Delay before responding (makes bot feel more natural)
+const RESPONSE_DELAY_MS = 3000;
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Trigger words that start a new conversation
 const TRIGGER_WORDS = [
   'ניקוי', 'שלום', 'היי', 'הי', 'בוקר טוב', 'ערב טוב',
@@ -156,17 +160,19 @@ function parseMultipleItems(text) {
 
 // Handle incoming message
 async function handleMessage(payload) {
-  const chatId = payload.from;
+  const rawChatId = payload.from;
 
   // Ignore group messages - only respond to private chats
-  if (chatId.endsWith('@g.us')) {
-    console.log(`[Flow] Ignoring group message from ${chatId}`);
+  if (rawChatId.endsWith('@g.us')) {
+    console.log(`[Flow] Ignoring group message from ${rawChatId}`);
     return;
   }
 
-  // Extract identifier (works with both @c.us phone format and @lid format from NOWEB)
-  const odId = chatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
-  const phone = odId; // Use odId as phone identifier
+  // Extract phone number (works with @c.us, @lid, @s.whatsapp.net formats)
+  const phone = rawChatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
+
+  // Always use @c.us format for sending messages (NOWEB @lid format doesn't work for sending)
+  const chatId = formatChatId(phone);
   // Try multiple sources for the contact name - NOWEB engine uses different fields
   const rawName = payload.pushName
     || payload._data?.notifyName
@@ -199,6 +205,7 @@ async function handleMessage(payload) {
 
     if (containsTrigger(messageText)) {
       await setConversation(phone, name, STATES.AWAITING_LOCATION, {});
+      await sleep(RESPONSE_DELAY_MS);
       await sendText(chatId, MESSAGES.welcome);
     } else {
       console.log(`[Flow] Ignoring message - no active conversation`);
@@ -240,6 +247,9 @@ async function handlePollVote(payload) {
 async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl) {
   const state = conv.state;
   const data = conv.data || {};
+
+  // Wait before responding
+  await sleep(RESPONSE_DELAY_MS);
 
   try {
     switch (state) {
