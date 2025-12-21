@@ -83,9 +83,13 @@ async function sendContextError(chatId, state, userInput) {
   }
 }
 
+// Cooldown period after completing a flow (60 seconds)
+const COOLDOWN_MS = 60000;
+
 // State machine states
 const STATES = {
   IDLE: 'idle',
+  COMPLETED: 'completed',
   AWAITING_LOCATION: 'awaiting_location',
   AWAITING_ITEM: 'awaiting_item',
   // Mattress flow
@@ -185,8 +189,15 @@ async function handleMessage(payload) {
   // Get current conversation state
   let conv = await getConversation(phone);
 
-  // If no active conversation, check for trigger word to start new one
-  if (!conv || conv.state === STATES.IDLE) {
+  // If no active conversation or completed, check for trigger word to start new one
+  if (!conv || conv.state === STATES.IDLE || conv.state === STATES.COMPLETED) {
+    // Check cooldown period after completing a flow
+    const completedAt = conv?.data?.completed_at;
+    if (completedAt && Date.now() - completedAt < COOLDOWN_MS) {
+      console.log(`[Flow] Ignoring trigger - cooldown active for ${phone}`);
+      return;
+    }
+
     if (containsTrigger(messageText)) {
       await setConversation(phone, name, STATES.AWAITING_LOCATION, {});
       await sendText(chatId, MESSAGES.welcome);

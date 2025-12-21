@@ -81,13 +81,13 @@ async function updateConversationData(phone, newData) {
   `, [phone, JSON.stringify(newData)]);
 }
 
-// Reset conversation to idle
+// Reset conversation to completed (with cooldown timestamp)
 async function resetConversation(phone) {
   await pool.query(`
     UPDATE conversations
-    SET state = 'idle', data = '{}', updated_at = NOW()
+    SET state = 'completed', data = $2, updated_at = NOW()
     WHERE phone = $1
-  `, [phone]);
+  `, [phone, JSON.stringify({ completed_at: Date.now() })]);
 }
 
 // Save a completed lead
