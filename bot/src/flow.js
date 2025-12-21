@@ -19,10 +19,14 @@ const TRIGGER_WORDS = [
   'מחיר', 'הצעת מחיר', 'כמה עולה'
 ];
 
-// Check if message contains any trigger word
+// Check if message contains any trigger word (whole word match only)
 function containsTrigger(text) {
   const normalized = text.trim();
-  return TRIGGER_WORDS.some(word => normalized.includes(word));
+  // Split into words and check for exact matches
+  const words = normalized.split(/\s+/);
+  return TRIGGER_WORDS.some(trigger =>
+    words.some(word => word === trigger) || normalized === trigger
+  );
 }
 
 // Input sanitization - limit length and remove dangerous characters
