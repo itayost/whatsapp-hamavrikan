@@ -162,13 +162,17 @@ async function handleMessage(payload) {
   }
 
   const phone = extractPhone(chatId);
-  // Try multiple sources for the contact name - sanitize to prevent injection
+  // Try multiple sources for the contact name - NOWEB engine uses different fields
   const rawName = payload.pushName
     || payload._data?.notifyName
+    || payload._data?.pushName
     || payload.notifyName
     || payload.sender?.pushname
-    || payload.contact?.name;
-  const name = sanitizeName(rawName);
+    || payload.sender?.name
+    || payload.contact?.name
+    || payload.contact?.pushname;
+  // Fallback to phone number if no name found (better than "Unknown")
+  const name = sanitizeName(rawName) !== 'Unknown' ? sanitizeName(rawName) : phone;
   // Sanitize message text - limit length
   const messageText = sanitizeInput(payload.body, 1000);
   const hasMedia = payload.hasMedia || false;
