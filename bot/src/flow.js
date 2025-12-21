@@ -83,8 +83,7 @@ async function sendContextError(chatId, state, userInput) {
   }
 }
 
-// Cooldown period after completing a flow (60 seconds)
-const COOLDOWN_MS = 60000;
+// Once a lead completes the flow, they cannot start again
 
 // State machine states
 const STATES = {
@@ -191,10 +190,10 @@ async function handleMessage(payload) {
 
   // If no active conversation or completed, check for trigger word to start new one
   if (!conv || conv.state === STATES.IDLE || conv.state === STATES.COMPLETED) {
-    // Check cooldown period after completing a flow
+    // If lead already completed the flow once, ignore forever
     const completedAt = conv?.data?.completed_at;
-    if (completedAt && Date.now() - completedAt < COOLDOWN_MS) {
-      console.log(`[Flow] Ignoring trigger - cooldown active for ${phone}`);
+    if (completedAt) {
+      console.log(`[Flow] Ignoring - lead ${phone} already completed flow`);
       return;
     }
 
