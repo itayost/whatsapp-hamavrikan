@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-whatsapp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-leads}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-whatsapp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  bot:
+    build: ./bot
+    container_name: bot
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-leads}
+      - POSTGRES_USER=${POSTGRES_USER:-whatsapp}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - WAHA_URL=http://waha:3000
+      - WAHA_API_KEY=${WAHA_API_KEY}
+      - WAHA_SESSION=default
+      - OWNER_PHONE=${OWNER_PHONE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  waha:
+    image: devlikeapro/waha:arm
+    container_name: waha
+    ports:
+      - "3000:3000"
+    environment:
+      - WHATSAPP_HOOK_URL=http://bot:3001/webhook/whatsapp
+      - WHATSAPP_HOOK_EVENTS=message,poll.vote
+      - WAHA_API_KEY=${WAHA_API_KEY}
+      - WAHA_DASHBOARD_USERNAME=admin
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_PASSWORD}
+      - WHATSAPP_SWAGGER_USERNAME=admin
+      - WHATSAPP_SWAGGER_PASSWORD=${WAHA_PASSWORD}
+    volumes:
+      - waha_data:/tmp/whatsapp-files
+    depends_on:
+      - bot
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  waha_data:
