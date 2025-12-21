@@ -161,17 +161,9 @@ async function handleMessage(payload) {
     return;
   }
 
-  // NOWEB engine uses @lid format - need to get actual phone from different field
-  const rawPhone = payload.from?.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '')
-    || payload._data?.from?.replace('@c.us', '').replace('@s.whatsapp.net', '')
-    || payload.sender?.id?.replace('@c.us', '').replace('@s.whatsapp.net', '')
-    || extractPhone(chatId);
-
-  // Log payload structure for debugging (remove after fixing)
-  console.log(`[Flow] Payload keys: ${Object.keys(payload).join(', ')}`);
-  console.log(`[Flow] from: ${payload.from}, _data.from: ${payload._data?.from}, sender.id: ${payload.sender?.id}`);
-
-  const phone = rawPhone;
+  // Extract identifier (works with both @c.us phone format and @lid format from NOWEB)
+  const odId = chatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
+  const phone = odId; // Use odId as phone identifier
   // Try multiple sources for the contact name - NOWEB engine uses different fields
   const rawName = payload.pushName
     || payload._data?.notifyName
