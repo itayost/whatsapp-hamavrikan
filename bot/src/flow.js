@@ -1,6 +1,7 @@
 const {
   getConversation,
   setConversation,
+  updateConversationData,
   resetConversation,
   saveLead,
 } = require('./db');
@@ -194,7 +195,7 @@ async function handleMessage(payload) {
   const hasMedia = payload.hasMedia || false;
   const mediaUrl = payload.media?.url || null;
 
-  console.log(`[Flow] Message from ${phone} (${name}): "${messageText}" (hasMedia: ${hasMedia})`);
+  console.log(`[Flow] Message from ${phone} (${name}): "${messageText}" (hasMedia: ${hasMedia}, rawChatId: ${rawChatId})`);
 
   // Get current conversation state
   let conv = await getConversation(phone);
@@ -225,10 +226,15 @@ async function handleMessage(payload) {
     return;
   }
 
-  // Use stored chatId to always reply to the original format (prevents duplicate chats)
-  const replyChatId = conv.data?.chatId || chatId;
+  // Always reply to where user is CURRENTLY messaging from
+  // This prevents "ghost" responses where bot replies to old format but user switched chats
+  const replyChatId = chatId;
 
-  // If already in active conversation, ignore trigger word and continue flow
+  // Update stored chatId if user switched formats (e.g., from @lid to @c.us)
+  if (conv.data?.chatId && conv.data.chatId !== chatId) {
+    console.log(`[Flow] User switched from ${conv.data.chatId} to ${chatId} - updating`);
+    await updateConversationData(phone, { chatId });
+  }
 
   // Process based on current state
   await processState(replyChatId, phone, name, conv, messageText, hasMedia, mediaUrl);

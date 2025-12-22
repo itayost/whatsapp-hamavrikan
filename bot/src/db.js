@@ -68,7 +68,7 @@ async function setConversation(phone, name, state, data = {}) {
     ON CONFLICT (phone) DO UPDATE SET
       name = COALESCE($2, conversations.name),
       state = $3,
-      data = conversations.data || $4,
+      data = COALESCE(conversations.data, '{}'::jsonb) || $4,
       updated_at = NOW()
   `, [phone, name, state, JSON.stringify(data)]);
 }
