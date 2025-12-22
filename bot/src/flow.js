@@ -4,7 +4,7 @@ const {
   resetConversation,
   saveLead,
 } = require('./db');
-const { sendText, sendImage, extractPhone, formatChatId } = require('./waha');
+const { sendText, sendImage, formatChatId } = require('./waha');
 const MESSAGES = require('./messages');
 
 const OWNER_PHONE = process.env.OWNER_PHONE || '972544994417';
@@ -232,33 +232,6 @@ async function handleMessage(payload) {
 
   // Process based on current state
   await processState(replyChatId, phone, name, conv, messageText, hasMedia, mediaUrl);
-}
-
-// Handle poll vote - supports multiple selections
-async function handlePollVote(payload) {
-  const rawChatId = payload.from || payload.voter;
-  const phone = extractPhone(rawChatId);
-  const selectedOptions = payload.selectedOptions || [];
-
-  // Get all selected option names
-  const selections = selectedOptions.map(opt => opt.name).filter(Boolean);
-  const selectedOption = selections[0] || '';
-
-  console.log(`[Flow] Poll vote from ${phone}: ${JSON.stringify(selections)}`);
-
-  const conv = await getConversation(phone);
-  if (!conv) return;
-
-  // Use stored chatId to reply to original format (prevents duplicate chats)
-  const chatId = conv.data?.chatId || formatChatId(phone);
-
-  // For multiple items selection, pass all selections
-  if (conv.state === STATES.MULTIPLE_SELECT && selections.length > 0) {
-    await handleMultipleSelect(chatId, phone, conv.name, selections, conv.data || {});
-  } else {
-    // Single selection - process as text
-    await processState(chatId, phone, conv.name, conv, selectedOption, false, null);
-  }
 }
 
 // Process message based on conversation state
@@ -557,6 +530,5 @@ async function handleOwnerMessage(payload) {
 
 module.exports = {
   handleMessage,
-  handlePollVote,
   handleOwnerMessage,
 };

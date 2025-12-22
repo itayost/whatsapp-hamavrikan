@@ -28,26 +28,6 @@ async function sendText(chatId, text) {
   }
 }
 
-// Send a poll
-async function sendPoll(chatId, question, options, multipleAnswers = false) {
-  try {
-    const response = await api.post('/api/sendPoll', {
-      session: SESSION,
-      chatId,
-      poll: {
-        name: question,
-        options,
-        multipleAnswers,
-      },
-    });
-    console.log(`[WAHA] Sent poll to ${chatId}`);
-    return response.data;
-  } catch (error) {
-    console.error(`[WAHA] Error sending poll:`, error.message);
-    throw error;
-  }
-}
-
 // Send an image
 async function sendImage(chatId, imageUrl, caption = '') {
   try {
@@ -73,15 +53,8 @@ function formatChatId(phone) {
   return `${cleaned}@c.us`;
 }
 
-// Extract phone number from chatId (handles @c.us, @lid, @s.whatsapp.net)
-function extractPhone(chatId) {
-  return chatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
-}
-
 module.exports = {
   sendText,
-  sendPoll,
   sendImage,
   formatChatId,
-  extractPhone,
 };

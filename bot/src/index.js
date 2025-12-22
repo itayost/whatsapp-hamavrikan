@@ -1,6 +1,6 @@
 const express = require('express');
 const { initDb } = require('./db');
-const { handleMessage, handlePollVote, handleOwnerMessage } = require('./flow');
+const { handleMessage, handleOwnerMessage } = require('./flow');
 
 const app = express();
 app.use(express.json());
@@ -81,11 +81,6 @@ app.post('/webhook/whatsapp', async (req, res) => {
       }
 
       await handleMessage(payload);
-    }
-
-    // Handle poll votes
-    if (event === 'poll.vote') {
-      await handlePollVote(payload);
     }
 
     res.json({ success: true });
