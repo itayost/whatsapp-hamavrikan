@@ -60,6 +60,7 @@ async function getConversation(phone) {
 }
 
 // Create or update conversation state
+// chatId is stored in data.chatId to preserve @lid/@c.us format
 async function setConversation(phone, name, state, data = {}) {
   await pool.query(`
     INSERT INTO conversations (phone, name, state, data, updated_at)

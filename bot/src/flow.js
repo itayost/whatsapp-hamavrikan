@@ -215,7 +215,8 @@ async function handleMessage(payload) {
     }
 
     if (containsTrigger(messageText)) {
-      await setConversation(phone, name, STATES.AWAITING_LOCATION, {});
+      // Store chatId to always reply to same format (@lid or @c.us)
+      await setConversation(phone, name, STATES.AWAITING_LOCATION, { chatId });
       await sleep(RESPONSE_DELAY_MS);
       await sendText(chatId, MESSAGES.welcome);
     } else {
@@ -224,17 +225,19 @@ async function handleMessage(payload) {
     return;
   }
 
+  // Use stored chatId to always reply to the original format (prevents duplicate chats)
+  const replyChatId = conv.data?.chatId || chatId;
+
   // If already in active conversation, ignore trigger word and continue flow
 
   // Process based on current state
-  await processState(chatId, phone, name, conv, messageText, hasMedia, mediaUrl);
+  await processState(replyChatId, phone, name, conv, messageText, hasMedia, mediaUrl);
 }
 
 // Handle poll vote - supports multiple selections
 async function handlePollVote(payload) {
   const rawChatId = payload.from || payload.voter;
   const phone = extractPhone(rawChatId);
-  const chatId = formatChatId(phone); // Always use @c.us format for sending
   const selectedOptions = payload.selectedOptions || [];
 
   // Get all selected option names
@@ -245,6 +248,9 @@ async function handlePollVote(payload) {
 
   const conv = await getConversation(phone);
   if (!conv) return;
+
+  // Use stored chatId to reply to original format (prevents duplicate chats)
+  const chatId = conv.data?.chatId || formatChatId(phone);
 
   // For multiple items selection, pass all selections
   if (conv.state === STATES.MULTIPLE_SELECT && selections.length > 0) {
@@ -296,15 +302,15 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
       break;
 
     case STATES.MATTRESS_PHOTO:
-      if (hasMedia) {
+      if (hasMedia || text === '0' || text === 'דלג') {
         await handleItemComplete(chatId, phone, name, 'מזרן', {
           subType: data.mattressType,
           bothSides: data.bothSides,
           stains: data.stains,
           age: data.age,
-        }, mediaUrl, data);
+        }, hasMedia ? mediaUrl : null, data);
       } else {
-        await sendText(chatId, '📸 אנא שלחו תמונה של המזרן');
+        await sendText(chatId, '📸 אנא שלחו תמונה של המזרן\n\n_שלחו 0 לדלג_');
       }
       break;
 
@@ -315,12 +321,12 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
       break;
 
     case STATES.SOFA_PHOTO:
-      if (hasMedia) {
+      if (hasMedia || text === '0' || text === 'דלג') {
         await handleItemComplete(chatId, phone, name, 'ספה', {
           subType: data.sofaType,
-        }, mediaUrl, data);
+        }, hasMedia ? mediaUrl : null, data);
       } else {
-        await sendText(chatId, '📸 אנא שלחו תמונה של הספה');
+        await sendText(chatId, '📸 אנא שלחו תמונה של הספה\n\n_שלחו 0 לדלג_');
       }
       break;
 
@@ -336,13 +342,13 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
       break;
 
     case STATES.CARPET_PHOTO:
-      if (hasMedia) {
+      if (hasMedia || text === '0' || text === 'דלג') {
         await handleItemComplete(chatId, phone, name, 'שטיח', {
           subType: data.carpetType,
           size: data.carpetSize,
-        }, mediaUrl, data);
+        }, hasMedia ? mediaUrl : null, data);
       } else {
-        await sendText(chatId, '📸 אנא שלחו תמונה של השטיח');
+        await sendText(chatId, '📸 אנא שלחו תמונה של השטיח\n\n_שלחו 0 לדלג_');
       }
       break;
 
