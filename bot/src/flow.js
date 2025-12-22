@@ -510,6 +510,11 @@ async function completeLead(chatId, phone, name, itemType, itemDetails, photos, 
 async function handleOwnerMessage(payload) {
   const rawChatId = payload.to;
 
+  // Ignore messages without recipient (reactions, status updates, etc.)
+  if (!rawChatId) {
+    return;
+  }
+
   // Ignore group messages
   if (rawChatId.endsWith('@g.us')) {
     return;
