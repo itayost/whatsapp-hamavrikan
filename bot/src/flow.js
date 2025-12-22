@@ -15,7 +15,7 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Trigger words that start a new conversation
 const TRIGGER_WORDS = [
-  'ניקוי', 'שלום', 'היי', 'הי', 'בוקר טוב', 'ערב טוב',
+  'ניקוי', 'שלום', 'היי', 'הי',
   'מחיר', 'הצעת מחיר', 'כמה עולה'
 ];
 
@@ -175,8 +175,8 @@ async function handleMessage(payload) {
   // Extract phone number (works with @c.us, @lid, @s.whatsapp.net formats)
   const phone = rawChatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
 
-  // Always use @c.us format for sending messages (NOWEB @lid format doesn't work for sending)
-  const chatId = formatChatId(phone);
+  // Preserve original format: @lid for Facebook/Instagram ad leads, @c.us for regular contacts
+  const chatId = rawChatId.endsWith('@lid') ? `${phone}@lid` : formatChatId(phone);
   // Try multiple sources for the contact name - NOWEB engine uses different fields
   const rawName = payload.pushName
     || payload._data?.notifyName
