@@ -245,7 +245,7 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
   try {
     switch (state) {
     case STATES.AWAITING_LOCATION:
-      await setConversation(phone, name, STATES.AWAITING_ITEM, { location: text });
+      await setConversation(phone, name, STATES.AWAITING_ITEM, { ...data, location: text });
       await sendText(chatId, MESSAGES.itemSelection);
       break;
 
