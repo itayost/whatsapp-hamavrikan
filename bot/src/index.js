@@ -56,13 +56,13 @@ app.post('/webhook/whatsapp', async (req, res) => {
     console.log(`[Webhook] Event: ${event}`);
 
     // Handle outgoing messages (owner takeover detection)
-    if (event === 'message' && payload.fromMe) {
+    if ((event === 'message' || event === 'message.any') && payload.fromMe) {
       await handleOwnerMessage(payload);
       return res.json({ success: true });
     }
 
     // Handle incoming messages
-    if (event === 'message' && !payload.fromMe) {
+    if ((event === 'message' || event === 'message.any') && !payload.fromMe) {
       // Skip duplicate messages (WAHA sometimes sends twice)
       if (isDuplicate(payload.id)) {
         console.log(`[Webhook] Skipping duplicate message ${payload.id}`);
