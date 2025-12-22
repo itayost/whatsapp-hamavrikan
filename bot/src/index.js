@@ -1,6 +1,6 @@
 const express = require('express');
 const { initDb } = require('./db');
-const { handleMessage, handlePollVote } = require('./flow');
+const { handleMessage, handlePollVote, handleOwnerMessage } = require('./flow');
 
 const app = express();
 app.use(express.json());
@@ -54,6 +54,12 @@ app.post('/webhook/whatsapp', async (req, res) => {
     const { event, payload } = req.body;
 
     console.log(`[Webhook] Event: ${event}`);
+
+    // Handle outgoing messages (owner takeover detection)
+    if (event === 'message' && payload.fromMe) {
+      await handleOwnerMessage(payload);
+      return res.json({ success: true });
+    }
 
     // Handle incoming messages
     if (event === 'message' && !payload.fromMe) {

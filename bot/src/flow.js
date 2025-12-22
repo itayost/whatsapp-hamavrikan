@@ -97,6 +97,7 @@ async function sendContextError(chatId, state, userInput) {
 const STATES = {
   IDLE: 'idle',
   COMPLETED: 'completed',
+  TAKEN_OVER: 'taken_over', // Owner manually took over the conversation
   AWAITING_LOCATION: 'awaiting_location',
   AWAITING_ITEM: 'awaiting_item',
   // Mattress flow
@@ -198,12 +199,18 @@ async function handleMessage(payload) {
   // Get current conversation state
   let conv = await getConversation(phone);
 
-  // If no active conversation or completed, check for trigger word to start new one
-  if (!conv || conv.state === STATES.IDLE || conv.state === STATES.COMPLETED) {
+  // If no active conversation or completed/taken_over, check for trigger word to start new one
+  if (!conv || conv.state === STATES.IDLE || conv.state === STATES.COMPLETED || conv.state === STATES.TAKEN_OVER) {
     // If lead already completed the flow once, ignore forever
     const completedAt = conv?.data?.completed_at;
     if (completedAt) {
       console.log(`[Flow] Ignoring - lead ${phone} already completed flow`);
+      return;
+    }
+
+    // If owner took over, ignore bot responses
+    if (conv?.state === STATES.TAKEN_OVER) {
+      console.log(`[Flow] Ignoring - owner took over conversation with ${phone}`);
       return;
     }
 
@@ -520,7 +527,30 @@ async function completeLead(chatId, phone, name, itemType, itemDetails, photos, 
   await resetConversation(phone);
 }
 
+// Handle outgoing message from owner - triggers takeover if lead is in active flow
+async function handleOwnerMessage(payload) {
+  const rawChatId = payload.to;
+
+  // Ignore group messages
+  if (rawChatId.endsWith('@g.us')) {
+    return;
+  }
+
+  // Extract phone number of recipient
+  const phone = rawChatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
+
+  // Check if recipient has an active conversation
+  const conv = await getConversation(phone);
+
+  // If lead is in active flow (not idle, completed, or already taken over), mark as taken over
+  if (conv && conv.state !== STATES.IDLE && conv.state !== STATES.COMPLETED && conv.state !== STATES.TAKEN_OVER) {
+    console.log(`[Flow] Owner took over conversation with ${phone} (was in state: ${conv.state})`);
+    await setConversation(phone, conv.name, STATES.TAKEN_OVER, { ...conv.data, taken_over_at: Date.now() });
+  }
+}
+
 module.exports = {
   handleMessage,
   handlePollVote,
+  handleOwnerMessage,
 };
