@@ -114,6 +114,8 @@ async function importContacts() {
       console.error('Error: Cannot connect to WAHA. Is it running?');
     } else {
       console.error('Error:', error.message);
+      console.error('Status:', error.response?.status);
+      console.error('Response:', JSON.stringify(error.response?.data, null, 2));
     }
     process.exit(1);
   } finally {
