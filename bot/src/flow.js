@@ -195,7 +195,7 @@ async function handleMessage(payload) {
   const hasMedia = payload.hasMedia || false;
   const mediaUrl = payload.media?.url || null;
 
-  console.log(`[Flow] Message from ${phone} (${name}): "${messageText}" (hasMedia: ${hasMedia}, rawChatId: ${rawChatId})`);
+  console.log(`[Flow] Message from ${phone} (${name}): "${messageText}" (hasMedia: ${hasMedia}, rawChatId: ${rawChatId}, derivedChatId: ${chatId})`);
 
   // Get current conversation state
   let conv = await getConversation(phone);
@@ -215,8 +215,16 @@ async function handleMessage(payload) {
       return;
     }
 
+    // If owner has contacted this user directly, don't auto-start bot
+    // This prevents interrupting manual conversations
+    if (conv?.data?.owner_contacted) {
+      console.log(`[Flow] Ignoring - owner has direct contact with ${phone}`);
+      return;
+    }
+
     if (containsTrigger(messageText)) {
       // Store chatId to always reply to same format (@lid or @c.us)
+      console.log(`[Flow] Trigger detected for ${phone}, starting flow with chatId: ${chatId}`);
       await setConversation(phone, name, STATES.AWAITING_LOCATION, { chatId });
       await sleep(RESPONSE_DELAY_MS);
       await sendText(chatId, MESSAGES.welcome);
@@ -226,17 +234,27 @@ async function handleMessage(payload) {
     return;
   }
 
-  // Always reply to where user is CURRENTLY messaging from
-  // This prevents "ghost" responses where bot replies to old format but user switched chats
-  const replyChatId = chatId;
+  // Use stored chatId if available, otherwise use current chatId
+  // This ensures we always reply to the same chat where conversation started
+  const storedChatId = conv.data?.chatId;
+  let replyChatId = storedChatId || chatId;
+
+  console.log(`[Flow] ChatId resolution: stored=${storedChatId}, current=${chatId}, using=${replyChatId}`);
 
   // Update stored chatId if user switched formats (e.g., from @lid to @c.us)
-  if (conv.data?.chatId && conv.data.chatId !== chatId) {
-    console.log(`[Flow] User switched from ${conv.data.chatId} to ${chatId} - updating`);
+  if (storedChatId && storedChatId !== chatId) {
+    console.log(`[Flow] User switched from ${storedChatId} to ${chatId} - updating`);
+    await updateConversationData(phone, { chatId });
+    // Continue using the new chatId for this and future messages
+    replyChatId = chatId;
+  } else if (!storedChatId) {
+    // First message after trigger - store the chatId
+    console.log(`[Flow] No stored chatId, storing: ${chatId}`);
     await updateConversationData(phone, { chatId });
   }
 
   // Process based on current state
+  console.log(`[Flow] Processing state ${conv.state} for ${phone}, replying to ${replyChatId}`);
   await processState(replyChatId, phone, name, conv, messageText, hasMedia, mediaUrl);
 }
 
@@ -512,7 +530,7 @@ async function completeLead(chatId, phone, name, itemType, itemDetails, photos, 
   await resetConversation(phone);
 }
 
-// Handle outgoing message from owner - triggers takeover if lead is in active flow
+// Handle outgoing message from owner - marks user to prevent bot interference
 async function handleOwnerMessage(payload) {
   const rawChatId = payload.to;
 
@@ -529,13 +547,25 @@ async function handleOwnerMessage(payload) {
   // Extract phone number of recipient
   const phone = rawChatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
 
-  // Check if recipient has an active conversation
+  // Check if recipient has an existing conversation record
   const conv = await getConversation(phone);
 
-  // If lead is in active flow (not idle, completed, or already taken over), mark as taken over
-  if (conv && conv.state !== STATES.IDLE && conv.state !== STATES.COMPLETED && conv.state !== STATES.TAKEN_OVER) {
-    console.log(`[Flow] Owner took over conversation with ${phone} (was in state: ${conv.state})`);
-    await setConversation(phone, conv.name, STATES.TAKEN_OVER, { ...conv.data, taken_over_at: Date.now() });
+  if (conv) {
+    // If lead is in active flow, mark as taken over
+    if (conv.state !== STATES.IDLE && conv.state !== STATES.COMPLETED && conv.state !== STATES.TAKEN_OVER) {
+      console.log(`[Flow] Owner took over active conversation with ${phone} (was in state: ${conv.state})`);
+      await setConversation(phone, conv.name, STATES.TAKEN_OVER, { ...conv.data, taken_over_at: Date.now() });
+    }
+    // If already completed or idle, add owner_contacted flag to prevent re-triggering
+    else if (!conv.data?.owner_contacted) {
+      console.log(`[Flow] Owner contacted ${phone} - marking to prevent bot interference`);
+      await updateConversationData(phone, { owner_contacted: Date.now() });
+    }
+  } else {
+    // No conversation exists - create one with owner_contacted flag
+    // This prevents bot from ever auto-starting with this user
+    console.log(`[Flow] Owner initiated contact with new user ${phone} - bot will not auto-respond`);
+    await setConversation(phone, 'Unknown', STATES.IDLE, { owner_contacted: Date.now() });
   }
 }
 

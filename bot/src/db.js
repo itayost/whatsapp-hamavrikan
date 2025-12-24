@@ -109,12 +109,21 @@ async function saveLead(lead) {
 }
 
 // Clean old conversations (30 min timeout)
+// Preserve completed_at, taken_over_at, and owner_contacted to prevent re-triggering
 async function cleanOldConversations() {
   await pool.query(`
     UPDATE conversations
-    SET state = 'idle', data = '{}'
+    SET state = 'idle',
+        data = jsonb_build_object(
+          'completed_at', data->'completed_at',
+          'taken_over_at', data->'taken_over_at',
+          'owner_contacted', data->'owner_contacted'
+        ),
+        updated_at = NOW()
     WHERE updated_at < NOW() - INTERVAL '30 minutes'
       AND state != 'idle'
+      AND state != 'completed'
+      AND state != 'taken_over'
   `);
 }
 
