@@ -98,7 +98,6 @@ async function sendContextError(chatId, state, userInput) {
 const STATES = {
   IDLE: 'idle',
   COMPLETED: 'completed',
-  TAKEN_OVER: 'taken_over', // Owner manually took over the conversation
   AWAITING_LOCATION: 'awaiting_location',
   AWAITING_ITEM: 'awaiting_item',
   // Mattress flow
@@ -200,25 +199,18 @@ async function handleMessage(payload) {
   // Get current conversation state
   let conv = await getConversation(phone);
 
-  // If no active conversation or completed/taken_over, check for trigger word to start new one
-  if (!conv || conv.state === STATES.IDLE || conv.state === STATES.COMPLETED || conv.state === STATES.TAKEN_OVER) {
+  // If no active conversation or completed, check for trigger word to start new one
+  if (!conv || conv.state === STATES.IDLE || conv.state === STATES.COMPLETED) {
     // If lead already completed the flow once, ignore forever
-    const completedAt = conv?.data?.completed_at;
-    if (completedAt) {
+    if (conv?.data?.completed_at) {
       console.log(`[Flow] Ignoring - lead ${phone} already completed flow`);
       return;
     }
 
-    // If owner took over, ignore bot responses
-    if (conv?.state === STATES.TAKEN_OVER) {
-      console.log(`[Flow] Ignoring - owner took over conversation with ${phone}`);
-      return;
-    }
-
-    // If owner has contacted this user directly, don't auto-start bot
-    // This prevents interrupting manual conversations
+    // If owner has contacted this user, don't auto-start bot
+    // This covers: imported contacts, owner messaged first, owner took over
     if (conv?.data?.owner_contacted) {
-      console.log(`[Flow] Ignoring - owner has direct contact with ${phone}`);
+      console.log(`[Flow] Ignoring - owner has contact with ${phone}`);
       return;
     }
 
@@ -551,20 +543,14 @@ async function handleOwnerMessage(payload) {
   const conv = await getConversation(phone);
 
   if (conv) {
-    // If lead is in active flow, mark as taken over
-    if (conv.state !== STATES.IDLE && conv.state !== STATES.COMPLETED && conv.state !== STATES.TAKEN_OVER) {
-      console.log(`[Flow] Owner took over active conversation with ${phone} (was in state: ${conv.state})`);
-      await setConversation(phone, conv.name, STATES.TAKEN_OVER, { ...conv.data, taken_over_at: Date.now() });
-    }
-    // If already completed or idle, add owner_contacted flag to prevent re-triggering
-    else if (!conv.data?.owner_contacted) {
+    // Mark with owner_contacted if not already marked
+    if (!conv.data?.owner_contacted) {
       console.log(`[Flow] Owner contacted ${phone} - marking to prevent bot interference`);
       await updateConversationData(phone, { owner_contacted: Date.now() });
     }
   } else {
     // No conversation exists - create one with owner_contacted flag
-    // This prevents bot from ever auto-starting with this user
-    console.log(`[Flow] Owner initiated contact with new user ${phone} - bot will not auto-respond`);
+    console.log(`[Flow] Owner initiated contact with ${phone} - bot will not auto-respond`);
     await setConversation(phone, 'Unknown', STATES.IDLE, { owner_contacted: Date.now() });
   }
 }
