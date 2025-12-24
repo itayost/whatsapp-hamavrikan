@@ -44,7 +44,7 @@ async function importContacts() {
     while (true) {
       console.log(`Fetching chats (offset: ${offset})...`);
       const response = await api.get(`/api/${SESSION}/chats`, {
-        params: { limit, offset, sortBy: 'messageTimestamp', sortOrder: 'desc' }
+        params: { limit, offset, sortBy: 'conversationTimestamp', sortOrder: 'desc' }
       });
 
       const chats = response.data;
@@ -67,8 +67,8 @@ async function importContacts() {
         continue;
       }
 
-      // Skip groups and broadcasts
-      if (chatId.endsWith('@g.us') || chatId.endsWith('@broadcast')) {
+      // Skip groups, broadcasts, and newsletters
+      if (chatId.endsWith('@g.us') || chatId.includes('@broadcast') || chatId.includes('@newsletter')) {
         skipped++;
         continue;
       }
