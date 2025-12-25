@@ -14,7 +14,7 @@ const api = axios.create({
 
 // Track phones the bot recently sent to (to distinguish from owner messages)
 const recentBotRecipients = new Set();
-const BOT_MESSAGE_WINDOW_MS = 5000; // 5 seconds
+const BOT_MESSAGE_WINDOW_MS = 2000; // 2 seconds
 
 function markBotSent(chatId) {
   const phone = chatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
