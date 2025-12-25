@@ -53,12 +53,10 @@ app.post('/webhook/whatsapp', async (req, res) => {
   try {
     const { event, payload } = req.body;
 
-    console.log(`[Webhook] Event: ${event}, fromMe: ${payload.fromMe}`);
+    console.log(`[Webhook] Event: ${event}`);
 
     // Handle outgoing messages (owner takeover detection)
     if ((event === 'message' || event === 'message.any') && payload.fromMe) {
-      // Debug: log all possible recipient fields
-      console.log(`[Webhook] Owner message - to: ${payload.to}, chatId: ${payload.chatId}, from: ${payload.from}`);
       await handleOwnerMessage(payload);
       return res.json({ success: true });
     }
