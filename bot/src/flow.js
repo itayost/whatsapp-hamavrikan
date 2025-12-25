@@ -5,7 +5,7 @@ const {
   resetConversation,
   saveLead,
 } = require('./db');
-const { sendText, sendImage, formatChatId } = require('./waha');
+const { sendText, sendImage, formatChatId, wasBotMessage } = require('./waha');
 const MESSAGES = require('./messages');
 
 const OWNER_PHONE = process.env.OWNER_PHONE || '972544994417';
@@ -545,6 +545,11 @@ async function handleOwnerMessage(payload) {
 
   // Extract phone number of recipient
   const phone = rawChatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
+
+  // Ignore if this was a bot-sent message (not a manual owner message)
+  if (wasBotMessage(phone)) {
+    return;
+  }
 
   // Check if recipient has an existing conversation record
   const conv = await getConversation(phone);

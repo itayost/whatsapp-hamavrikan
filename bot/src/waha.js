@@ -12,9 +12,24 @@ const api = axios.create({
   },
 });
 
+// Track phones the bot recently sent to (to distinguish from owner messages)
+const recentBotRecipients = new Set();
+const BOT_MESSAGE_WINDOW_MS = 5000; // 5 seconds
+
+function markBotSent(chatId) {
+  const phone = chatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
+  recentBotRecipients.add(phone);
+  setTimeout(() => recentBotRecipients.delete(phone), BOT_MESSAGE_WINDOW_MS);
+}
+
+function wasBotMessage(phone) {
+  return recentBotRecipients.has(phone);
+}
+
 // Send a text message
 async function sendText(chatId, text) {
   try {
+    markBotSent(chatId);
     const response = await api.post('/api/sendText', {
       session: SESSION,
       chatId,
@@ -31,6 +46,7 @@ async function sendText(chatId, text) {
 // Send an image
 async function sendImage(chatId, imageUrl, caption = '') {
   try {
+    markBotSent(chatId);
     const response = await api.post('/api/sendImage', {
       session: SESSION,
       chatId,
@@ -57,4 +73,5 @@ module.exports = {
   sendText,
   sendImage,
   formatChatId,
+  wasBotMessage,
 };
