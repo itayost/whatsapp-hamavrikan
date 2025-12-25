@@ -226,6 +226,12 @@ async function handleMessage(payload) {
     return;
   }
 
+  // Check if owner has taken over this conversation (even mid-flow)
+  if (conv.data?.owner_contacted) {
+    console.log(`[Flow] Ignoring - owner took over conversation with ${phone}`);
+    return;
+  }
+
   // Use stored chatId if available, otherwise use current chatId
   // This ensures we always reply to the same chat where conversation started
   const storedChatId = conv.data?.chatId;
