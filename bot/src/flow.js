@@ -199,18 +199,25 @@ async function handleMessage(payload) {
   // Get current conversation state
   let conv = await getConversation(phone);
 
+  // DEBUG: Log conversation state for incoming message
+  console.log(`[Flow] Conversation lookup for ${phone}:`, conv ? JSON.stringify({
+    state: conv.state,
+    owner_contacted: conv.data?.owner_contacted,
+    completed_at: conv.data?.completed_at,
+  }) : 'NO RECORD');
+
   // If no active conversation or completed, check for trigger word to start new one
   if (!conv || conv.state === STATES.IDLE || conv.state === STATES.COMPLETED) {
     // If lead already completed the flow once, ignore forever
     if (conv?.data?.completed_at) {
-      console.log(`[Flow] Ignoring - lead ${phone} already completed flow`);
+      console.log(`[Flow] ❌ BLOCKED - lead ${phone} already completed flow`);
       return;
     }
 
     // If owner has contacted this user, don't auto-start bot
     // This covers: imported contacts, owner messaged first, owner took over
     if (conv?.data?.owner_contacted) {
-      console.log(`[Flow] Ignoring - owner has contact with ${phone}`);
+      console.log(`[Flow] ❌ BLOCKED - owner has contact with ${phone} (owner_contacted: ${conv.data.owner_contacted})`);
       return;
     }
 
@@ -228,7 +235,7 @@ async function handleMessage(payload) {
 
   // Check if owner has taken over this conversation (even mid-flow)
   if (conv.data?.owner_contacted) {
-    console.log(`[Flow] Ignoring - owner took over conversation with ${phone}`);
+    console.log(`[Flow] ❌ BLOCKED MID-FLOW - owner took over conversation with ${phone} (owner_contacted: ${conv.data.owner_contacted})`);
     return;
   }
 
@@ -530,6 +537,15 @@ async function completeLead(chatId, phone, name, itemType, itemDetails, photos, 
 
 // Handle outgoing message from owner - marks user to prevent bot interference
 async function handleOwnerMessage(payload) {
+  // DEBUG: Log all relevant payload fields
+  console.log(`[OwnerMsg] Outgoing message detected:`, JSON.stringify({
+    from: payload.from,
+    to: payload.to,
+    chatId: payload.chatId,
+    fromMe: payload.fromMe,
+    body: payload.body?.substring(0, 50),
+  }));
+
   // For outgoing messages (fromMe=true), WAHA puts:
   // - 'from' = sender's account (owner's phone number)
   // - 'to' = recipient's phone number
@@ -537,34 +553,41 @@ async function handleOwnerMessage(payload) {
 
   // Ignore messages without recipient (reactions, status updates, etc.)
   if (!rawChatId) {
+    console.log(`[OwnerMsg] Skipped - no recipient (to field is empty)`);
     return;
   }
 
   // Ignore group messages
   if (rawChatId.endsWith('@g.us')) {
+    console.log(`[OwnerMsg] Skipped - group message`);
     return;
   }
 
   // Extract phone number of recipient
   const phone = rawChatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
+  console.log(`[OwnerMsg] Recipient phone extracted: ${phone}`);
 
   // Ignore if this was a bot-sent message (not a manual owner message)
   if (wasBotMessage(phone)) {
+    console.log(`[OwnerMsg] Skipped - this was a bot message (within 2s window)`);
     return;
   }
 
   // Check if recipient has an existing conversation record
   const conv = await getConversation(phone);
+  console.log(`[OwnerMsg] Existing conversation:`, conv ? `state=${conv.state}, owner_contacted=${conv.data?.owner_contacted}` : 'none');
 
   if (conv) {
     // Mark with owner_contacted if not already marked
     if (!conv.data?.owner_contacted) {
-      console.log(`[Flow] Owner contacted ${phone} - marking to prevent bot interference`);
+      console.log(`[OwnerMsg] ✅ MARKING ${phone} as owner_contacted`);
       await updateConversationData(phone, { owner_contacted: Date.now() });
+    } else {
+      console.log(`[OwnerMsg] Already marked as owner_contacted`);
     }
   } else {
     // No conversation exists - create one with owner_contacted flag
-    console.log(`[Flow] Owner initiated contact with ${phone} - bot will not auto-respond`);
+    console.log(`[OwnerMsg] ✅ CREATING conversation for ${phone} with owner_contacted flag`);
     await setConversation(phone, 'Unknown', STATES.IDLE, { owner_contacted: Date.now() });
   }
 }
