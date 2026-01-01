@@ -530,8 +530,10 @@ async function completeLead(chatId, phone, name, itemType, itemDetails, photos, 
 
 // Handle outgoing message from owner - marks user to prevent bot interference
 async function handleOwnerMessage(payload) {
-  // For outgoing messages, WAHA puts the recipient in 'from' field (the chat ID)
-  const rawChatId = payload.from || payload.to;
+  // For outgoing messages (fromMe=true), WAHA puts:
+  // - 'from' = sender's account (owner's phone number)
+  // - 'to' = recipient's phone number
+  const rawChatId = payload.to;
 
   // Ignore messages without recipient (reactions, status updates, etc.)
   if (!rawChatId) {
