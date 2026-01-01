@@ -546,14 +546,13 @@ async function handleOwnerMessage(payload) {
     body: payload.body?.substring(0, 50),
   }));
 
-  // For outgoing messages (fromMe=true), WAHA puts:
-  // - 'from' = sender's account (owner's phone number)
-  // - 'to' = recipient's phone number
-  const rawChatId = payload.to;
+  // For outgoing messages (fromMe=true), WAHA NOWEB engine puts the chat ID in 'from'
+  // (not 'to' as documented) - the chat ID IS the recipient for outgoing messages
+  const rawChatId = payload.from;
 
   // Ignore messages without recipient (reactions, status updates, etc.)
   if (!rawChatId) {
-    console.log(`[OwnerMsg] Skipped - no recipient (to field is empty)`);
+    console.log(`[OwnerMsg] Skipped - no chat ID found`);
     return;
   }
 
