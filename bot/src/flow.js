@@ -8,7 +8,7 @@ const {
 const { sendText, sendImage, formatChatId, wasBotMessage } = require('./waha');
 const MESSAGES = require('./messages');
 
-const OWNER_PHONE = process.env.OWNER_PHONE || '972544994417';
+const OWNER_PHONE = process.env.OWNER_PHONE || '972526653776';
 
 // Delay before responding (makes bot feel more natural)
 const RESPONSE_DELAY_MS = 3000;
