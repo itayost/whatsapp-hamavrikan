@@ -26,6 +26,34 @@ function wasBotMessage(phone) {
   return recentBotRecipients.has(phone);
 }
 
+// Cache for LID -> phone number mapping (avoids repeated API calls)
+const lidCache = new Map();
+
+// Resolve @lid to real phone number using WAHA API
+async function resolveLidToPhone(lid) {
+  // Extract just the lid number if full format passed
+  const lidNumber = lid.replace('@lid', '');
+
+  // Check cache first
+  if (lidCache.has(lidNumber)) {
+    return lidCache.get(lidNumber);
+  }
+
+  try {
+    const response = await api.get(`/api/${SESSION}/lids/${encodeURIComponent(lid)}`);
+    const phoneWithSuffix = response.data?.pn;
+    if (phoneWithSuffix) {
+      const phone = phoneWithSuffix.replace('@c.us', '').replace('@s.whatsapp.net', '');
+      lidCache.set(lidNumber, phone);
+      console.log(`[WAHA] Resolved LID ${lidNumber} -> ${phone}`);
+      return phone;
+    }
+  } catch (error) {
+    console.log(`[WAHA] Failed to resolve LID ${lidNumber}:`, error.message);
+  }
+  return null;
+}
+
 // Send a text message
 async function sendText(chatId, text) {
   try {
@@ -74,4 +102,5 @@ module.exports = {
   sendImage,
   formatChatId,
   wasBotMessage,
+  resolveLidToPhone,
 };

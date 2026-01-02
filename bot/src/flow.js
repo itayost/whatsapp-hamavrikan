@@ -5,7 +5,7 @@ const {
   resetConversation,
   saveLead,
 } = require('./db');
-const { sendText, sendImage, formatChatId, wasBotMessage } = require('./waha');
+const { sendText, sendImage, formatChatId, wasBotMessage, resolveLidToPhone } = require('./waha');
 const MESSAGES = require('./messages');
 
 const OWNER_PHONE = process.env.OWNER_PHONE || '972526653776';
@@ -173,11 +173,28 @@ async function handleMessage(payload) {
     return;
   }
 
-  // Extract phone number (works with @c.us, @lid, @s.whatsapp.net formats)
-  const phone = rawChatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
+  // Extract identifier (works with @c.us, @lid, @s.whatsapp.net formats)
+  const rawId = rawChatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
 
-  // Preserve original format: @lid for Facebook/Instagram ad leads, @c.us for regular contacts
-  const chatId = rawChatId.endsWith('@lid') ? `${phone}@lid` : formatChatId(phone);
+  // For @lid leads (Facebook/Instagram ads), resolve to real phone number
+  // This prevents duplicate chat threads in WhatsApp
+  let phone = rawId;
+  let chatId;
+
+  if (rawChatId.endsWith('@lid')) {
+    const resolvedPhone = await resolveLidToPhone(rawChatId);
+    if (resolvedPhone) {
+      phone = resolvedPhone;
+      chatId = `${resolvedPhone}@c.us`;
+      console.log(`[Flow] Resolved @lid to @c.us: ${rawId} -> ${resolvedPhone}`);
+    } else {
+      // Fallback to @lid if resolution fails
+      chatId = rawChatId;
+      console.log(`[Flow] Could not resolve @lid, using original: ${rawChatId}`);
+    }
+  } else {
+    chatId = formatChatId(phone);
+  }
   // Try multiple sources for the contact name - NOWEB engine uses different fields
   const rawName = payload.pushName
     || payload._data?.notifyName
