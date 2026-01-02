@@ -580,8 +580,22 @@ async function handleOwnerMessage(payload) {
   }
 
   // Extract phone number of recipient
-  const phone = rawChatId.replace('@lid', '').replace('@c.us', '').replace('@s.whatsapp.net', '');
-  console.log(`[OwnerMsg] Recipient phone extracted: ${phone}`);
+  // For @lid, resolve to real phone number to match incoming message handling
+  let phone;
+  if (rawChatId.endsWith('@lid')) {
+    const resolvedPhone = await resolveLidToPhone(rawChatId);
+    if (resolvedPhone) {
+      phone = resolvedPhone;
+      console.log(`[OwnerMsg] Resolved @lid to phone: ${rawChatId} -> ${resolvedPhone}`);
+    } else {
+      // Fallback to LID if resolution fails
+      phone = rawChatId.replace('@lid', '');
+      console.log(`[OwnerMsg] Could not resolve @lid, using: ${phone}`);
+    }
+  } else {
+    phone = rawChatId.replace('@c.us', '').replace('@s.whatsapp.net', '');
+  }
+  console.log(`[OwnerMsg] Recipient phone: ${phone}`);
 
   // Ignore if this was a bot-sent message (not a manual owner message)
   if (wasBotMessage(phone)) {
