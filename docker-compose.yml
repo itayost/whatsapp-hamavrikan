@@ -37,14 +37,14 @@ services:
     restart: unless-stopped
 
   waha:
-    image: devlikeapro/waha:arm
+    image: devlikeapro/waha:latest
     container_name: waha
     ports:
       - "3000:3000"
     environment:
       - WHATSAPP_HOOK_URL=http://bot:3001/webhook/whatsapp
       - WHATSAPP_HOOK_EVENTS=message.any
-      - WHATSAPP_DEFAULT_ENGINE=NOWEB
+      - WHATSAPP_DEFAULT_ENGINE=GOWS
       - WHATSAPP_STORE_ENABLED=true
       - WAHA_API_KEY=${WAHA_API_KEY}
       - WAHA_DASHBOARD_USERNAME=admin
