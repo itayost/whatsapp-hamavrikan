@@ -321,15 +321,15 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
       break;
 
     case STATES.MATTRESS_PHOTO:
-      if (hasMedia || text === '0' || text === 'דלג') {
+      if (hasMedia) {
         await handleItemComplete(chatId, phone, name, 'מזרן', {
           subType: data.mattressType,
           bothSides: data.bothSides,
           stains: data.stains,
           age: data.age,
-        }, hasMedia ? mediaUrl : null, data);
+        }, mediaUrl, data);
       } else {
-        await sendText(chatId, '📸 אנא שלחו תמונה של המזרן\n\n_שלחו 0 לדלג_');
+        await sendText(chatId, '📸 אנא שלחו תמונה של המזרן');
       }
       break;
 
@@ -340,12 +340,12 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
       break;
 
     case STATES.SOFA_PHOTO:
-      if (hasMedia || text === '0' || text === 'דלג') {
+      if (hasMedia) {
         await handleItemComplete(chatId, phone, name, 'ספה', {
           subType: data.sofaType,
-        }, hasMedia ? mediaUrl : null, data);
+        }, mediaUrl, data);
       } else {
-        await sendText(chatId, '📸 אנא שלחו תמונה של הספה\n\n_שלחו 0 לדלג_');
+        await sendText(chatId, '📸 אנא שלחו תמונה של הספה');
       }
       break;
 
@@ -361,13 +361,13 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
       break;
 
     case STATES.CARPET_PHOTO:
-      if (hasMedia || text === '0' || text === 'דלג') {
+      if (hasMedia) {
         await handleItemComplete(chatId, phone, name, 'שטיח', {
           subType: data.carpetType,
           size: data.carpetSize,
-        }, hasMedia ? mediaUrl : null, data);
+        }, mediaUrl, data);
       } else {
-        await sendText(chatId, '📸 אנא שלחו תמונה של השטיח\n\n_שלחו 0 לדלג_');
+        await sendText(chatId, '📸 אנא שלחו תמונה של השטיח');
       }
       break;
 
