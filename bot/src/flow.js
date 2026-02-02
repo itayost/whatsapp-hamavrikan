@@ -14,6 +14,23 @@ const OWNER_PHONE = process.env.OWNER_PHONE || '972526653776';
 const RESPONSE_DELAY_MS = 3000;
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Prevent duplicate completions when user sends multiple photos at once
+const recentCompletions = new Map();
+const COMPLETION_WINDOW_MS = 5000; // 5 second window
+
+function isRecentlyCompleted(phone) {
+  const lastCompletion = recentCompletions.get(phone);
+  if (lastCompletion && Date.now() - lastCompletion < COMPLETION_WINDOW_MS) {
+    return true;
+  }
+  return false;
+}
+
+function markCompleted(phone) {
+  recentCompletions.set(phone, Date.now());
+  setTimeout(() => recentCompletions.delete(phone), COMPLETION_WINDOW_MS);
+}
+
 // Trigger words that start a new conversation
 const TRIGGER_WORDS = [
   'ניקוי', 'שלום', 'היי', 'הי',
@@ -451,6 +468,13 @@ async function handleMultipleSelect(chatId, phone, name, selectedItems, data) {
 
 // Handle item completion - check if more items pending
 async function handleItemComplete(chatId, phone, name, itemType, itemDetails, photoUrl, data) {
+  // Prevent duplicate completions from multiple photos sent at once
+  if (isRecentlyCompleted(phone)) {
+    console.log(`[Flow] Skipping duplicate completion for ${phone} (multiple photos)`);
+    return;
+  }
+  markCompleted(phone);
+
   const completedItem = {
     type: itemType,
     details: itemDetails,
