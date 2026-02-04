@@ -43,6 +43,32 @@ setInterval(() => {
   userMessageCounts.clear();
 }, 60000);
 
+// Per-user message queue - ensures messages from same chatId
+// are processed sequentially to prevent race conditions
+const userQueues = new Map();
+const QUEUE_CLEANUP_MS = 60000;
+
+function queueForUser(chatId, handler) {
+  if (!userQueues.has(chatId)) {
+    userQueues.set(chatId, Promise.resolve());
+  }
+
+  const queue = userQueues.get(chatId)
+    .then(() => handler())
+    .catch(err => console.error(`[Queue] Error for ${chatId}:`, err));
+
+  userQueues.set(chatId, queue);
+
+  // Clean up idle queue references
+  queue.finally(() => {
+    setTimeout(() => {
+      if (userQueues.get(chatId) === queue) {
+        userQueues.delete(chatId);
+      }
+    }, QUEUE_CLEANUP_MS);
+  });
+}
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -57,7 +83,7 @@ app.post('/webhook/whatsapp', async (req, res) => {
 
     // Handle outgoing messages (owner takeover detection)
     if ((event === 'message' || event === 'message.any') && payload.fromMe) {
-      await handleOwnerMessage(payload);
+      queueForUser(payload.from, () => handleOwnerMessage(payload));
       return res.json({ success: true });
     }
 
@@ -80,7 +106,7 @@ app.post('/webhook/whatsapp', async (req, res) => {
         return res.json({ success: true, rateLimited: true });
       }
 
-      await handleMessage(payload);
+      queueForUser(payload.from, () => handleMessage(payload));
     }
 
     res.json({ success: true });
