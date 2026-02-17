@@ -157,6 +157,9 @@ async function sendInactivityReminders() {
 
     for (const row of result.rows) {
       try {
+        // Mark reminded_at first to prevent re-sending on failure
+        await updateConversationDataOnly(row.phone, { reminded_at: Date.now() });
+
         const chatId = row.data?.chatId;
         if (!chatId) {
           console.log(`[Reminder] No chatId for ${row.phone}, skipping`);
@@ -171,7 +174,6 @@ async function sendInactivityReminders() {
 
         console.log(`[Reminder] Sending reminder to ${row.phone} (state: ${row.state})`);
         await sendText(chatId, reminderMessage);
-        await updateConversationDataOnly(row.phone, { reminded_at: Date.now() });
         console.log(`[Reminder] Reminder sent to ${row.phone}`);
       } catch (err) {
         console.error(`[Reminder] Error sending reminder to ${row.phone}:`, err.message);
