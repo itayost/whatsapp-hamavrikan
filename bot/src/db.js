@@ -108,7 +108,16 @@ async function saveLead(lead) {
   return result.rows[0];
 }
 
-// Clean old conversations (30 min timeout)
+// Update just the data field (merge) WITHOUT touching updated_at
+// Used by reminder system so reminders don't reset the inactivity timer
+async function updateConversationDataOnly(phone, newData) {
+  await pool.query(
+    `UPDATE conversations SET data = data || $2 WHERE phone = $1`,
+    [phone, JSON.stringify(newData)]
+  );
+}
+
+// Clean old conversations (60 min timeout - extended from 30 to allow reminder window)
 // Preserve completed_at and owner_contacted to prevent re-triggering
 async function cleanOldConversations() {
   await pool.query(`
@@ -119,14 +128,65 @@ async function cleanOldConversations() {
           'owner_contacted', data->'owner_contacted'
         ),
         updated_at = NOW()
-    WHERE updated_at < NOW() - INTERVAL '30 minutes'
+    WHERE updated_at < NOW() - INTERVAL '60 minutes'
       AND state != 'idle'
       AND state != 'completed'
   `);
 }
 
+// Send inactivity reminders to leads who haven't responded in 30 minutes
+// Only sends one reminder per conversation (tracked via data.reminded_at)
+async function sendInactivityReminders() {
+  try {
+    const result = await pool.query(`
+      SELECT phone, state, data
+      FROM conversations
+      WHERE updated_at < NOW() - INTERVAL '30 minutes'
+        AND state != 'idle'
+        AND state != 'completed'
+        AND (data->>'reminded_at') IS NULL
+        AND (data->>'owner_contacted') IS NULL
+        AND (data->>'completed_at') IS NULL
+    `);
+
+    if (result.rows.length === 0) return;
+
+    // Lazy require to avoid circular deps (flow.js imports db.js)
+    const { sendText } = require('./waha');
+    const MESSAGES = require('./messages');
+
+    for (const row of result.rows) {
+      try {
+        const chatId = row.data?.chatId;
+        if (!chatId) {
+          console.log(`[Reminder] No chatId for ${row.phone}, skipping`);
+          continue;
+        }
+
+        const reminderMessage = MESSAGES.reminders[row.state];
+        if (!reminderMessage) {
+          console.log(`[Reminder] No reminder message for state "${row.state}", skipping ${row.phone}`);
+          continue;
+        }
+
+        console.log(`[Reminder] Sending reminder to ${row.phone} (state: ${row.state})`);
+        await sendText(chatId, reminderMessage);
+        await updateConversationDataOnly(row.phone, { reminded_at: Date.now() });
+        console.log(`[Reminder] Reminder sent to ${row.phone}`);
+      } catch (err) {
+        console.error(`[Reminder] Error sending reminder to ${row.phone}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.error('[Reminder] Error in sendInactivityReminders:', err.message);
+  }
+}
+
 // Run cleanup every 5 minutes
 setInterval(cleanOldConversations, 5 * 60 * 1000);
+
+// Run reminder check every 5 minutes
+setInterval(sendInactivityReminders, 5 * 60 * 1000);
 
 module.exports = {
   pool,
@@ -134,6 +194,7 @@ module.exports = {
   getConversation,
   setConversation,
   updateConversationData,
+  updateConversationDataOnly,
   resetConversation,
   saveLead,
 };
