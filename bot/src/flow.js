@@ -69,7 +69,7 @@ function getContextHint(state) {
     },
     [STATES.AWAITING_ITEM]: {
       question: 'איזה פריט תרצו לנקות?',
-      example: 'שלחו 1 לספה, 2 למזרן, 3 לשטיח, או 4 לכמה פריטים'
+      example: 'שלחו 1 לספה, 2 למזרן, 3 לשטיח, 4 למזגן, או 5 לכמה פריטים'
     },
     [STATES.MATTRESS_TYPE]: {
       question: 'איזה סוג מזרן?',
@@ -91,9 +91,21 @@ function getContextHint(state) {
       question: 'איזה סוג שטיח?',
       example: 'שלחו מספר 1-5'
     },
+    [STATES.AC_QUANTITY]: {
+      question: 'כמה מזגנים יש לנקות?',
+      example: 'לדוגמה: 1, 2, שלושה'
+    },
+    [STATES.AC_SIZE]: {
+      question: 'מה גודל המזגן? (כח סוס)',
+      example: 'לדוגמה: 1 כ״ס, 1.5 כ״ס, 2 כ״ס'
+    },
+    [STATES.AC_AGE]: {
+      question: 'האם המזגן ישן או חדש יחסית?',
+      example: 'לדוגמה: חדש, 3 שנים, ישן'
+    },
     [STATES.MULTIPLE_SELECT]: {
       question: 'אילו פריטים?',
-      example: 'שלחו מספרים מופרדים בפסיק, למשל: 1,2'
+      example: 'שלחו מספרים מופרדים בפסיק, למשל: 1,2,4'
     }
   };
   return hints[state] || null;
@@ -130,6 +142,11 @@ const STATES = {
   CARPET_TYPE: 'carpet_type',
   CARPET_SIZE: 'carpet_size',
   CARPET_PHOTO: 'carpet_photo',
+  // AC flow
+  AC_QUANTITY: 'ac_quantity',
+  AC_SIZE: 'ac_size',
+  AC_AGE: 'ac_age',
+  AC_PHOTO: 'ac_photo',
   // Multiple items
   MULTIPLE_SELECT: 'multiple_select',
 };
@@ -161,13 +178,14 @@ function parseMultipleItems(text) {
   const items = [];
 
   // Check for numbered input (e.g., "1,2" or "1 2 3")
-  const numbers = trimmed.match(/[123]/g);
+  const numbers = trimmed.match(/[1234]/g);
   if (numbers) {
     const uniqueNumbers = [...new Set(numbers)];
     for (const num of uniqueNumbers) {
       if (num === '1') items.push('ספה');
       if (num === '2') items.push('מזרן');
       if (num === '3') items.push('שטיח');
+      if (num === '4') items.push('מזגן');
     }
     if (items.length > 0) return items;
   }
@@ -176,6 +194,7 @@ function parseMultipleItems(text) {
   if (trimmed.includes('ספה')) items.push('ספה');
   if (trimmed.includes('מזרן')) items.push('מזרן');
   if (trimmed.includes('שטיח')) items.push('שטיח');
+  if (trimmed.includes('מזגן')) items.push('מזגן');
 
   return items;
 }
@@ -388,6 +407,34 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
       }
       break;
 
+    // AC flow
+    case STATES.AC_QUANTITY:
+      await setConversation(phone, name, STATES.AC_SIZE, { ...data, acQuantity: text });
+      await sendText(chatId, MESSAGES.acSize);
+      break;
+
+    case STATES.AC_SIZE:
+      await setConversation(phone, name, STATES.AC_AGE, { ...data, acSize: text });
+      await sendText(chatId, MESSAGES.acAge);
+      break;
+
+    case STATES.AC_AGE:
+      await setConversation(phone, name, STATES.AC_PHOTO, { ...data, acAge: text });
+      await sendText(chatId, MESSAGES.acPhoto);
+      break;
+
+    case STATES.AC_PHOTO:
+      if (hasMedia) {
+        await handleItemComplete(chatId, phone, name, 'מזגן', {
+          quantity: data.acQuantity,
+          size: data.acSize,
+          age: data.acAge,
+        }, mediaUrl, data);
+      } else {
+        await sendText(chatId, '📸 אנא שלחו תמונה של המזגן');
+      }
+      break;
+
     // Multiple items selection
     case STATES.MULTIPLE_SELECT:
       // Parse text for item selection - support numbered input or text
@@ -424,7 +471,10 @@ async function handleItemSelection(chatId, phone, name, text, data) {
   } else if (normalizedText === '3' || normalizedText.includes('שטיח')) {
     await setConversation(phone, name, STATES.CARPET_TYPE, { ...data, itemType: 'שטיח' });
     await sendText(chatId, MESSAGES.carpetType);
-  } else if (normalizedText === '4' || normalizedText.includes('כמה פריטים') || normalizedText.includes('יחד')) {
+  } else if (normalizedText === '4' || normalizedText.includes('מזגן')) {
+    await setConversation(phone, name, STATES.AC_QUANTITY, { ...data, itemType: 'מזגן' });
+    await sendText(chatId, MESSAGES.acQuantity);
+  } else if (normalizedText === '5' || normalizedText.includes('כמה פריטים') || normalizedText.includes('יחד')) {
     await setConversation(phone, name, STATES.MULTIPLE_SELECT, { ...data, itemType: 'כמה פריטים' });
     await sendText(chatId, MESSAGES.multipleItems);
   } else {
@@ -463,6 +513,9 @@ async function handleMultipleSelect(chatId, phone, name, selectedItems, data) {
   } else if (firstItem === 'שטיח') {
     await setConversation(phone, name, STATES.CARPET_TYPE, newData);
     await sendText(chatId, MESSAGES.carpetType);
+  } else if (firstItem === 'מזגן') {
+    await setConversation(phone, name, STATES.AC_QUANTITY, newData);
+    await sendText(chatId, MESSAGES.acQuantity);
   }
 }
 
@@ -508,6 +561,9 @@ async function handleItemComplete(chatId, phone, name, itemType, itemDetails, ph
     } else if (nextItem === 'שטיח') {
       await setConversation(phone, name, STATES.CARPET_TYPE, newData);
       await sendText(chatId, MESSAGES.carpetType);
+    } else if (nextItem === 'מזגן') {
+      await setConversation(phone, name, STATES.AC_QUANTITY, newData);
+      await sendText(chatId, MESSAGES.acQuantity);
     }
   } else {
     // All items completed - save lead
