@@ -190,11 +190,11 @@ function parseMultipleItems(text) {
     if (items.length > 0) return items;
   }
 
-  // Check for text mentions
-  if (trimmed.includes('ספה')) items.push('ספה');
-  if (trimmed.includes('מזרן')) items.push('מזרן');
-  if (trimmed.includes('שטיח')) items.push('שטיח');
-  if (trimmed.includes('מזגן')) items.push('מזגן');
+  // Check for text mentions (supports plurals and variants)
+  if (textMatchesItem(trimmed, 'ספה')) items.push('ספה');
+  if (textMatchesItem(trimmed, 'מזרן')) items.push('מזרן');
+  if (textMatchesItem(trimmed, 'שטיח')) items.push('שטיח');
+  if (textMatchesItem(trimmed, 'מזגן')) items.push('מזגן');
 
   return items;
 }
@@ -457,21 +457,33 @@ async function processState(chatId, phone, name, conv, text, hasMedia, mediaUrl)
   }
 }
 
+// Hebrew variant matching - handles plurals, nun sofit (ן vs נ), and common misspellings
+const ITEM_VARIANTS = {
+  'ספה': ['ספה', 'ספות', 'ספא'],
+  'מזרן': ['מזרן', 'מזרנים', 'מזרונים', 'מזרון'],
+  'שטיח': ['שטיח', 'שטיחים'],
+  'מזגן': ['מזגן', 'מזגנים'],
+};
+
+function textMatchesItem(text, itemName) {
+  return ITEM_VARIANTS[itemName].some(variant => text.includes(variant));
+}
+
 // Handle item selection - supports numbered options (1,2,3,4) or text
 async function handleItemSelection(chatId, phone, name, text, data) {
   const normalizedText = text.trim();
 
   // Check for numbered input first
-  if (normalizedText === '1' || normalizedText.includes('ספה')) {
+  if (normalizedText === '1' || textMatchesItem(normalizedText, 'ספה')) {
     await setConversation(phone, name, STATES.SOFA_TYPE, { ...data, itemType: 'ספה' });
     await sendText(chatId, MESSAGES.sofaType);
-  } else if (normalizedText === '2' || normalizedText.includes('מזרן')) {
+  } else if (normalizedText === '2' || textMatchesItem(normalizedText, 'מזרן')) {
     await setConversation(phone, name, STATES.MATTRESS_TYPE, { ...data, itemType: 'מזרן' });
     await sendText(chatId, MESSAGES.mattressType);
-  } else if (normalizedText === '3' || normalizedText.includes('שטיח')) {
+  } else if (normalizedText === '3' || textMatchesItem(normalizedText, 'שטיח')) {
     await setConversation(phone, name, STATES.CARPET_TYPE, { ...data, itemType: 'שטיח' });
     await sendText(chatId, MESSAGES.carpetType);
-  } else if (normalizedText === '4' || normalizedText.includes('מזגן')) {
+  } else if (normalizedText === '4' || textMatchesItem(normalizedText, 'מזגן')) {
     await setConversation(phone, name, STATES.AC_QUANTITY, { ...data, itemType: 'מזגן' });
     await sendText(chatId, MESSAGES.acQuantity);
   } else if (normalizedText === '5' || normalizedText.includes('כמה פריטים') || normalizedText.includes('יחד')) {
