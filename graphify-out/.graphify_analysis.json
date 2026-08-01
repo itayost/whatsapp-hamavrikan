@@ -1,0 +1,254 @@
+{
+  "communities": {
+    "0": [
+      "axios",
+      "bot_package",
+      "bot_package_dependencies",
+      "bot_package_dependencies_axios",
+      "bot_package_dependencies_express",
+      "bot_package_dependencies_pg",
+      "bot_package_description",
+      "bot_package_main",
+      "bot_package_name",
+      "bot_package_scripts",
+      "bot_package_scripts_dev",
+      "bot_package_scripts_start",
+      "bot_package_version",
+      "express",
+      "pg"
+    ],
+    "1": [
+      "bot_src_db_initdb",
+      "bot_src_index",
+      "bot_src_index_app",
+      "bot_src_index_checkratelimit",
+      "bot_src_index_express",
+      "bot_src_index_handlemessage_handleownermessage",
+      "bot_src_index_initdb",
+      "bot_src_index_isduplicate",
+      "bot_src_index_processedmessages",
+      "bot_src_index_queueforuser",
+      "bot_src_index_start",
+      "bot_src_index_usermessagecounts",
+      "bot_src_index_userqueues"
+    ],
+    "2": [
+      "bot_src_db_updateconversationdata",
+      "bot_src_flow_handleownermessage",
+      "bot_src_waha",
+      "bot_src_waha_api",
+      "bot_src_waha_axios",
+      "bot_src_waha_lidcache",
+      "bot_src_waha_markbotsent",
+      "bot_src_waha_recentbotrecipients",
+      "bot_src_waha_resolvelidtophone",
+      "bot_src_waha_sendimage",
+      "bot_src_waha_wasbotmessage"
+    ],
+    "3": [
+      "bot_src_flow",
+      "bot_src_flow_containstrigger",
+      "bot_src_flow_getcontexthint",
+      "bot_src_flow_getconversation_setconversation_updateconversationdata_resetconversation_savelead",
+      "bot_src_flow_item_variants",
+      "bot_src_flow_messages",
+      "bot_src_flow_parsenumberedoption",
+      "bot_src_flow_recentcompletions",
+      "bot_src_flow_sendtext_sendimage_formatchatid_wasbotmessage_resolvelidtophone",
+      "bot_src_flow_states",
+      "bot_src_flow_trigger_words"
+    ],
+    "4": [
+      "bot_src_db",
+      "bot_src_db_cleanoldconversations",
+      "bot_src_db_getconversation",
+      "bot_src_db_pool",
+      "bot_src_db_resetconversation",
+      "bot_src_db_savelead",
+      "bot_src_db_sendinactivityreminders",
+      "bot_src_db_updateconversationdataonly",
+      "bot_src_flow_completelead",
+      "bot_src_waha_formatchatid"
+    ],
+    "5": [
+      "bot_src_db_setconversation",
+      "bot_src_flow_handleitemselection",
+      "bot_src_flow_handlemultipleselect",
+      "bot_src_flow_processstate",
+      "bot_src_flow_sendcontexterror",
+      "bot_src_waha_sendtext"
+    ],
+    "6": [
+      "bot_src_import_contacts",
+      "bot_src_import_contacts_api",
+      "bot_src_import_contacts_axios",
+      "bot_src_import_contacts_importcontacts",
+      "bot_src_import_contacts_pool"
+    ],
+    "7": [
+      "bot_src_flow_handlemessage",
+      "bot_src_flow_sanitizeinput",
+      "bot_src_flow_sanitizename",
+      "bot_src_flow_sleep"
+    ],
+    "8": [
+      "bot_src_messages",
+      "bot_src_messages_formatdetails",
+      "bot_src_messages_formatphone",
+      "bot_src_messages_messages"
+    ],
+    "9": [
+      "bot_src_flow_handleitemcomplete",
+      "bot_src_flow_isrecentlycompleted",
+      "bot_src_flow_markcompleted"
+    ],
+    "10": [
+      "bot_src_flow_parsemultipleitems",
+      "bot_src_flow_textmatchesitem"
+    ]
+  },
+  "cohesion": {
+    "0": 0.13333333333333333,
+    "1": 0.16666666666666666,
+    "2": 0.21818181818181817,
+    "3": 0.2,
+    "4": 0.24444444444444444,
+    "5": 0.8,
+    "6": 0.4,
+    "7": 0.5,
+    "8": 0.5,
+    "9": 0.6666666666666666,
+    "10": 1.0
+  },
+  "gods": [
+    {
+      "id": "bot_src_flow_handlemessage",
+      "label": "handleMessage()",
+      "degree": 13
+    },
+    {
+      "id": "bot_src_flow_processstate",
+      "label": "processState()",
+      "degree": 11
+    },
+    {
+      "id": "bot_src_waha_sendtext",
+      "label": "sendText()",
+      "degree": 10
+    },
+    {
+      "id": "bot_src_db_setconversation",
+      "label": "setConversation()",
+      "degree": 8
+    },
+    {
+      "id": "bot_src_flow_handleitemcomplete",
+      "label": "handleItemComplete()",
+      "degree": 7
+    },
+    {
+      "id": "bot_src_flow_completelead",
+      "label": "completeLead()",
+      "degree": 7
+    },
+    {
+      "id": "bot_src_flow_handleownermessage",
+      "label": "handleOwnerMessage()",
+      "degree": 7
+    },
+    {
+      "id": "bot_src_flow_sendcontexterror",
+      "label": "sendContextError()",
+      "degree": 6
+    },
+    {
+      "id": "bot_src_flow_handleitemselection",
+      "label": "handleItemSelection()",
+      "degree": 6
+    },
+    {
+      "id": "bot_src_flow_handlemultipleselect",
+      "label": "handleMultipleSelect()",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "handleMessage()",
+      "target": "getConversation()",
+      "source_files": [
+        "bot/src/flow.js",
+        "bot/src/db.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "handleOwnerMessage()",
+      "target": "getConversation()",
+      "source_files": [
+        "bot/src/flow.js",
+        "bot/src/db.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "handleItemComplete()",
+      "target": "setConversation()",
+      "source_files": [
+        "bot/src/flow.js",
+        "bot/src/db.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "handleMessage()",
+      "target": "setConversation()",
+      "source_files": [
+        "bot/src/flow.js",
+        "bot/src/db.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "handleOwnerMessage()",
+      "target": "setConversation()",
+      "source_files": [
+        "bot/src/flow.js",
+        "bot/src/db.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `handleMessage()` connect `Community 7` to `Community 1`, `Community 2`, `Community 3`, `Community 4`, `Community 5`?",
+      "why": "High betweenness centrality (0.025) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `sendText()` connect `Community 5` to `Community 2`, `Community 3`, `Community 4`, `Community 7`, `Community 9`?",
+      "why": "High betweenness centrality (0.013) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `name`, `version`, `description` to the rest of the system?",
+      "why": "31 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected."
+    }
+  ]
+}
