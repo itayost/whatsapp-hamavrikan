@@ -6,6 +6,6 @@ node_modules/
 .sessions/
 DEPLOYMENT.md
 
-# graphify knowledge graph: commit graph.json/GRAPH_REPORT.md, skip local-only artifacts
-graphify-out/cost.json
-graphify-out/cache/
+# graphify: local tool output, regenerable. Only the report is committed.
+graphify-out/*
+!graphify-out/GRAPH_REPORT.md
